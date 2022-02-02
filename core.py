@@ -5,7 +5,7 @@ analysis.
 MathFunc hold a function and defines a mathematical function easier to 
 use.
 Cauchy compute numerical solutions of IVPs through Euler, Euler implicit
- and Runge-Kutta methods. 
+and Runge-Kutta methods. 
 MatrixInversion compute Jacobi, Gauss-Seidel, SOR, Cholesky methods of
 matrices inversion.
 HeatEquation compute heat equation bi- and tridimensional numerical 
@@ -25,6 +25,15 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>. 
 """
 
+__author__ = "Lil Tel"
+__copyright__ = ""
+__credits__ = ["Lil Tel"]
+__license__ = "GPL3"
+__version__ = "0.0.2"
+__maintainer__ = "Lil Tel"
+__email__ = "lil.tel@outlook.fr"
+__status__ = "Alpha"
+
 ##System imports
 import os
 import pip
@@ -34,8 +43,10 @@ import sys
 
 ##Python imports
 import cmath
+import itertools
 import functools
 import math
+import random
 import urllib.request
 
 from itertools import *
@@ -50,15 +61,23 @@ PLAT: str = platform.system()
 YES: set = {'yes', 'Y', 'y'}
 NO: set = {'no', 'N', 'n'}
 ANA_VERSION = "2021.05"
-PYTH: str = {
-    "Windows":"python", "Darwin":"python", "Linux":"python3"
-    }[PLAT]
+PYTH: str = 'python' + {'Linux':'3 '}.get(PLAT,' ')
+PIP_INSTALL: str = "-m pip install --user -q --exists-action i "
 is_64bits = sys.maxsize > 2**32
+
+##Tweaks
+cd: bool = True
+u_p: bool = True
+np: bool = True
+sc: bool = True
+mtplt: bool = True
+nb: bool = True
+cp: bool = True
 
 ##Third-party imports
 
 ####Anaconda Installation
-def import_or_install_conda(platform) -> bool:
+def import_or_install_conda() -> bool:
     try:
         __import__("conda")
         return True
@@ -67,7 +86,7 @@ def import_or_install_conda(platform) -> bool:
         while inp not in YES|NO:
             inp: str = input(
                 'anaconda is not installed. Do you want to install it?'
-                '(yes/no)'
+                + '(yes/no)'
                 )
 
         if inp in YES:
@@ -97,15 +116,23 @@ def import_or_install_conda(platform) -> bool:
                 "Linux": "bash installer.sh"
                 }[PLAT])
             os.system('conda update conda')
-            os.system('conda install -c numba icc_rt')
+            try:
+                if nb:
+                    os.system('conda install -c numba icc_rt')
+                    os.system('conda update -c numba icc_rt')
+            except NameError: pass
 
-cd: bool = import_or_install_conda(PLAT)
+try:
+    if cd: cd = import_or_install_conda()
+except NameError: pass
 
 ####Pip upgrade
 def upgrade_pip() -> int:
-    return os.system(PYTH + " -m pip install --upgrade --user -q pip")
+    return os.system(PYTH + PIP_INSTALL + 'pip')
 
-u_p: int = upgrade_pip()
+try:
+    if u_p: u_p = upgrade_pip()
+except NameError: pass
 
 ####Matplotlib, Numba, NumPy, SciPy installation check
 def import_or_install(*args) -> Tuple[bool]:
@@ -116,24 +143,37 @@ def import_or_install(*args) -> Tuple[bool]:
     except ImportError:
         while ...:
             inp: str = input(
-                args[0]
-                + ' is not installed. Do you want to install it? '
+                args[0] + ' is not installed. Do you want to install it?'
                 + '(yes/no)'
                 ) 
             if inp in YES|NO: break
         if inp in YES: return (
-            not os.system(
-                PYTH + ' -m pip install --upgrade --user ' + args[0]
-                ),
+            not os.system(PYTH + PIP_INSTALL + args[0]),
             ) + import_or_install(*args[1:])
         else: return (False,) + import_or_install(*args[1:])
 
-np, sc, mtplt, nb = import_or_install(
-     'numpy', 'scipy', 'matplotlib', 'numba'
-    )
+list_imports: List[str]= [ 'numpy', 'scipy', 'matplotlib', 'cvxpy',
+                'np', 'sc', 'mtplt', 'cp'
+                ]
+l: int = len(list_imports)
+
+for i in range(l//2):
+    try: 
+        eval(list_imports[l//2])
+        list_imports.insert(l//2 - 1, list_imports.pop(0))
+        list_imports.append(list_imports.pop(l//2))
+
+    except NameError:
+        exec(list_imports.pop(l//2)+'=False')
+        l -= list_imports.pop(0) and 2
+if l: exec(str(','.join(list_imports[l//2:])) + '= import_or_install(*'
+        + str(list_imports[:l//2]) + ')'
+        )
 
 if mtplt:
     del mtplt
+
+    import matplotlib as mtplt
 
     import matplotlib.animation as ani
     import matplotlib.cm as cm
@@ -208,7 +248,9 @@ else:
     int32 = int64 = int8 = int_ = intc = intp = long_ = longlong = None
     none = short = u1 = u2 = u4 = u8 = uchar = uint = None
     uint16 = uint32 = uint64 = uint8 = uintc = uintp = ulong = None
-    ulonglong = ushort = void = None	
+    ulonglong = ushort = void = None
+
+    prange = range
 
 if sc:
     del sc
@@ -216,14 +258,10 @@ if sc:
     from scipy.optimize import newton
     from scipy.sparse import diags ### construction des matrices ###
 
-__author__ = "Lil Tel"
-__copyright__ = ""
-__credits__ = ["Lil Tel"]
-__license__ = "GPL3"
-__version__ = "0.0.1"
-__maintainer__ = "Lil Tel"
-__email__ = "lil.tel@outlook.fr"
-__status__ = "Alpha"
+if cp:
+    del cp
+
+    import cvxpy as cp
 
 sys.setrecursionlimit(10**8)
 
@@ -234,6 +272,8 @@ number = TypeVar('number', real, complex)
 vec = TypeVar('vec', number, np.ndarray)
 
 sqrt: Callable[[vec], vec] = sq
+
+τ: float = 2*π
 
 
 def d(f, order:int):
@@ -860,6 +900,7 @@ class VectorTransport(Transport):
             update=transport_update, ignore_X=True, **kwargs
             )
 
+
 @njit(fastmath=True, parallel=True)
 def complex_function_compute(x, y, δ, f):
     print(len(x),len(y))
@@ -867,7 +908,6 @@ def complex_function_compute(x, y, δ, f):
     F = f(x + y*1j)
     ρ = np.abs(F)
     return F, ρ
-
         
 def isn(t): return t!=t
 class ComplexFunction:
@@ -881,9 +921,11 @@ class ComplexFunction:
             return 1/(1+z**2)
         self.f: Callable[[vec], vec] = kwargs.get('f',f)
         del f
-        self.z1: number = -2 - 2j
-        self.z2: number =  2 + 2j
-        self.update()
+        self.z1: number = kwargs.get('z1', -2 - 2j)
+        self.z2: number = kwargs.get('z2', 2 + 2j)
+        self.zmin: number = 0
+        self.zmax: number = 4
+        self.update(**kwargs)
 
     def update(self:'ComplexFunction', *args, **kwargs):
         for k in kwargs: exec("self."+k+"=kwargs[k]")
@@ -892,7 +934,7 @@ class ComplexFunction:
         self.ymin: real = min((self.z1.imag, self.z2.imag))
         self.ymax: real = self.z1.imag + self.z2.imag - self.ymin
 
-    def calcul(self:'ComplexFunction'):
+    def calcul(self:'ComplexFunction', **kwargs):
         self.x, self.y = np.meshgrid(
             np.arange(self.xmin/self.δ, self.xmax/self.δ)*self.δ, 
             np.arange(self.ymin/self.δ, self.ymax/self.δ)*self.δ
@@ -906,7 +948,7 @@ class ComplexFunction:
             ])
 
 
-    def singularités(self:'ComplexFunction'):
+    def singularités(self:'ComplexFunction', **kwargs):
         for y in range(len(self.ρ)):
             for x in range(len(self.ρ[y])):
                 z = (x+1j*y)*self.δ+self.xmin+self.ymin*1j
@@ -933,7 +975,7 @@ class ComplexFunction:
                 elif (not self.ρ[y][x]): 
                     print('Zéro en', z, ' θ= ', self.θ[y][x])
                     
-    def graphique(self:'ComplexFunction'):
+    def graphique(self:'ComplexFunction', **kwargs):
         self.fig = plt.figure()
         self.ax = self.fig.gca(projection='3d')
         self.surf = self.ax.plot_surface(
@@ -941,13 +983,13 @@ class ComplexFunction:
             rcount=self.rcount, ccount=self.ccount, cmap=cm.jet, 
             facecolors=cm.jet(colors.Normalize(-π,π)(self.θ))
             )
-        self.ax.set_zlim(0,self.ymax+self.xmax)
+        self.ax.set_zlim(self.zmin, self.zmax)
         #for _ in ['x','y']: 
         #    self.ax.callbacks.connect(_+'lim_changed', self.update(_))
         self.ax.set_autoscale_on(False)
         plt.show()
 
-    def ud(self:'ComplexFunction'):
+    def ud(self:'ComplexFunction', **kwargs):
         print(self.ax.viewLim.intervalx) 
         self.xmin, self.xmax = self.ax.viewLim.intervalx
         print(self.ax.viewLim.intervaly)
@@ -960,8 +1002,12 @@ class ComplexFunction:
         self.ρ = 0
         self.θ = 0
 
-    def __call__(self:'ComplexFunction'):
-        self.calcul(), self.singularités(), self.graphique()
+    def __call__(self:'ComplexFunction', **kwargs):
+        self.calcul(**kwargs)
+        if kwargs.get('singularités'):
+            self.singularités(**kwargs)
+        if kwargs.get('graphique', True):
+            self.graphique(**kwargs)
 
 def V(t, f=(lambda x:x)):
     return [
@@ -1048,17 +1094,17 @@ class HeatEquation:
             ),z1[1]#repliage et retour
 
 @njit(fastmath=True, parallel=True)
-def julia_color(img, c, d, t, R, count, bw):
-    for y in prange(t):
-        for x in prange(t):
-            z: float64 = 2*d*(x/t-.5 + (.5-y/t)*1j)
+def julia_color(img, c, dX, dY, X, Y, R, count, bw):
+    for y in prange(Y):
+        for x in prange(X):
+            z: float64 = 2*(dX*(x/X-.5) + dY*(.5-y/Y)*1j)
             for i in range(count):
                 if abs(z) > R:
                     z = 2
                     break
                 z = z**2 + c
             if bw:
-                if i==count-1: img[y,x]= (255,255,255)
+                img[y,x] = (255,)*3 if i == count-1 else (0,)*3
             else:
                 ρ:int = int(abs(z)*(1<<24))
                 r:int = ρ >> 16
@@ -1068,27 +1114,33 @@ def julia_color(img, c, d, t, R, count, bw):
     return img
 
 class Julia:
-    def __init__(self:'Julia', c:complex = None, d:real = None, t:int=None, 
-                *args, **kwargs):
-        self.t: int = int(t) if t is not None else 2000
-        self.image = np.zeros(2*(self.t,)+(3,), dtype=np.uint8)
+    def __init__(self:'Julia', c:complex = None, dX:real = None,
+                X:int=None, *args, **kwargs):
+        self.dX: float = float(dX if dX is not None else 1.75)
+        self.dY: float = float(kwargs.get('dY', dX))
+        self.X: int = int(X) if X is not None else 2000
+        self.Y: int = int(kwargs.get('Y', self.dY/self.dX * self.X))
+        self.image = np.empty((self.Y,self.X)+(3,), dtype=np.uint8)
         self.count: int = kwargs.get('count', 255)
         self.c: number = complex(
             c if c is not None else complex(-0.8, 0.156)
             )
-        self.d: real = float(d if d is not None else 1.75)
         self.bw: bool = kwargs.get('bw', False)
         self.R:int = 0
-        while self.R**2-self.R < self.d*sqrt(2*self.c):
+        while self.R**2-self.R < (self.dX+self.dY)*sqrt(2*self.c)/2:
             self.R += 1
 
 
-    def show(self:'Julia'): plt.imshow(self.image), plt.show()
+    def show(self:'Julia'): 
+        plt.imshow(self.image, extent=[
+            -self.dX, self.dX, -self.dY, self.dY
+            ])
+        plt.show()
 
     def color(self:'Julia', *args, **kwargs):
         self.image = julia_color(
-            self.image, self.c, self.d, self.t, self.R, self.count,
-            self.bw
+            self.image, self.c, self.dX, self.dY, self.X, self.Y, self.R,
+            self.count, self.bw
             )
         
     def save(self:'Julia'): 
@@ -1099,7 +1151,6 @@ class Julia:
     def __call__(self:'Julia', *args, **kwargs):
         self.color(*args, **kwargs)
         self.show()
-        self.save()
 
 ##Calcul de solutions matricielles de type Ax = b
 def γ(M, _1=False): return dg((lambda x:1/x if(_1)else x)(dg(M)))
@@ -1127,10 +1178,10 @@ class MatrixInversion:
         return x, n
 
     def gauss_seidel(self:'MatrixInversion'):
-        _1LA = _1(L(self.A)); B_GS, c = _1LA@-U(self.A, 1), _1LA@b
+        _1lA = _1(L(self.A)); B_gs, c = _1lA@-U(self.A, 1), _1lA@b
         def φ(x, x_1=χ, _=0):
             return ((x, _) if(norm(x - x_1) < ε or _ > n) 
-                else φ(B_GS@x + c, x, _+1))
+                else φ(B_gs@x + c, x, _+1))
         return φ(x0)
 
     def sor(self:'MatrixInversion'):
